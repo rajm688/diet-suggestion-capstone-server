@@ -1,13 +1,10 @@
 import mongoose from "mongoose";
-const usersModel = new mongoose.Schema(
+const userSchema = new mongoose.Schema(
   {
-    firstname: {
+    username: {
       type: String,
       required: true,
-    },
-    lastname: {
-      type: String,
-      required: true,
+      unique: true,
     },
     email: {
       type: String,
@@ -25,4 +22,5 @@ const usersModel = new mongoose.Schema(
   },
   { timestamps: true }
 );
-export const Users = mongoose.model("auths", usersModel);
+// while  using mongoose to manage time use timestramp in mongoose
+export const User = mongoose.model("auth", userSchema);

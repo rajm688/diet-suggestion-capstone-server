@@ -1,48 +1,53 @@
 import express from "express";
+import { User } from "../models/users.js";
 import bcrypt from "bcrypt";
-import { Users } from "../models/users.js";
 import Jwt from "jsonwebtoken";
 const router = express.Router();
+//register
 router.post("/signup", async (req, res) => {
   const password = req.body.password;
-  const salt = await bcrypt.genSalt(8);
+  const salt = await bcrypt.genSalt(10);
   const hashedPassword = await bcrypt.hash(password, salt);
-  const newUser = new Users({
-    firstname: req.body.firstname,
-    lastname: req.body.lastname,
+  const newUser = new User({
+    username: req.body.username,
     email: req.body.email,
     password: hashedPassword,
   });
   try {
     const savedUser = await newUser.save();
     res.status(201).json(savedUser);
-  } catch (error) {
-    res.status(500).json(error);
+  } catch (err) {
+    res.status(401).json({ message: "user already exists" });
   }
 });
 
+//Login
 router.post("/login", async (req, res) => {
   try {
-    const email = req.body.email;
-    const hashedPassword = req.body.password;
-    const user = await Users.findOne({ email });
+    const username = req.body.username;
+    const unhashpassword = req.body.password;
+    const user = await User.findOne({ username });
     if (user === null) {
-      res.status(401).json("username not found");
+      res.status(401).json({ message: "invalid username or password" });
       return;
     }
     const storedPassword = user.password;
-    const password = await bcrypt.compare(hashedPassword, storedPassword);
-    if (!password) {
-      res.status(401).json("wrong password");
+    const matchpassword = await bcrypt.compare(unhashpassword, storedPassword);
+    if (!matchpassword) {
+      res.status(401).json({ message: "invalid username or password" });
       return;
     }
+    const { password, ...others } = user._doc;
     const Token = Jwt.sign(
       { id: user._id, isAdmin: user.isAdmin },
-      process.env.JWT_Key
+      process.env.JWT_Key,
+      { expiresIn: "3d" }
     );
-    res.status(201).json({ user, Token });
+    console.log(Token);
+    res.status(200).json({ ...others, Token });
   } catch (error) {
-    res.status(500).json("error in login");
+    res.status(500).send("something went wrong in login ", error.message);
   }
 });
+
 export const userRouter = router;
